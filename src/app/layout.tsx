@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sangrila 2k25",
-  description: "Annual Fest 2025",
+  title: "Youth Gita Summit 2025",
+  description: "",
 };
 
 export default function RootLayout({

@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Phone, Mail, MapPin, Loader2 } from 'lucide-react';
+import { Phone, Mail, MapPin, Loader2, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRef, useState } from 'react';
 
+// Dynamically import the map to prevent SSR issues
 const MapEmbed = dynamic(() => import('@/components/ui/MapEmbed'), { ssr: false });
 
 const ContactSection = () => {
@@ -41,18 +42,15 @@ const ContactSection = () => {
 
       setMessage('Message sent successfully!');
       formRef.current?.reset();
-      e.currentTarget.reset();
-    } catch {
+    } catch (error) {
       setMessage('Failed to send message. Please try again.');
-      console.log(message);
-      
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <section id="contact" className="py-20 px-6 md:px-12 bg-gradient-to-b from-gray-50 to-white">
+    <section id="contact" className="py-20 px-6 md:px-12 bg-amber-50 shadow-lg">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <motion.div
@@ -61,98 +59,60 @@ const ContactSection = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <span className="text-blue-600 font-medium">Get In Touch</span>
-            <h2 className="mt-2 text-3xl md:text-4xl font-heading font-bold">Contact Us</h2>
-            <div className="w-20 h-1 bg-blue-500 mx-auto mt-4 rounded-full"></div>
-            <p className="mt-6 text-lg text-gray-600 max-w-2xl mx-auto">
-              Have questions about Sangrila 2k25? We&apos;re here to help. Reach out to us using the form below or contact us directly.
+            <span className="text-amber-700 font-medium tracking-wide">Connect With Us</span>
+            <h2 className="mt-2 text-3xl md:text-4xl font-heading font-bold text-gray-800">Inquiries & Support</h2>
+            <div className="w-20 h-1 bg-amber-500 mx-auto mt-4 rounded-full"></div>
+            <p className="mt-6 text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed">
+              For inquiries regarding participation, or any other details about the Youth Gita Summit 2025, please feel free to reach out.
             </p>
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle className="text-2xl font-bold">Send us a message</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div className="space-y-2">
-                      <label htmlFor="name" className="text-sm font-medium">Your Name</label>
-                      <Input id="name" placeholder="Enter your name" required className='mt-2'/>
-                    </div>
-                    <div className="space-y-2">
-                      <label htmlFor="email" className="text-sm font-medium">Email Address</label>
-                      <Input id="email" type="email" placeholder="Enter your email" required className='mt-2'/>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label htmlFor="subject" className="text-sm font-medium">Subject</label>
-                    <Input id="subject" placeholder="What is this regarding?" required className='mt-2'/>
-                  </div>
-                  <div className="space-y-2">
-                    <label htmlFor="message" className="text-sm font-medium">Message</label>
-                    <Textarea id="message" placeholder="Type your message here..." className="min-h-[120px] mt-2" required/>
-                  </div>
-                  <Button type="submit" className="w-full cursor-pointer" disabled={loading}>
-                  {loading ? <Loader2 className="animate-spin w-5 h-5 mx-auto" /> : "Send Message"}
-                    </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </motion.div>
 
+
+          {/* Right Column: Contact Info & Map */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-12"
           >
-            <div className="h-full flex flex-col">
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="text-2xl font-bold">Contact Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div className="flex items-start">
-                      <Phone className="w-5 h-5 text-blue-500 mr-3" />
-                      <div>
-                        <h4 className="font-medium">Phone</h4>
-                        <p className="text-gray-600 mt-1">+91 98968 03571</p>
-                        {/* <p className="text-gray-600">+91 87654 32109</p> */}
-                      </div>
-                    </div>
-                    <div className="flex items-start">
-                      <Mail className="w-5 h-5 text-blue-500 mr-3" />
-                      <div>
-                        <h4 className="font-medium">Email</h4>
-                        <p className="text-gray-600 mt-1">ghub@geeta.edu.in</p>
-                        {/* <p className="text-gray-600">support@sangrila2k25.com</p> */}
-                      </div>
-                    </div>
-                    <div className="flex items-start">
-                      <MapPin className="w-5 h-5 text-blue-500 mr-3" />
-                      <div>
-                        <h4 className="font-medium">Address</h4>
-                        <p className="text-gray-600 mt-1">GEETA UNIVERSITY, NAULTHA, PANIPAT</p>
-                      </div>
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-2xl font-bold font-heading">Contact Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="flex items-start">
+                    <Phone className="w-5 h-5 text-amber-600 mr-4 mt-1 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-medium text-gray-800">Event Coordinator</h4>
+                      <p className="text-gray-600">Dr. Gurjeet Kaur Chawla</p>
+                      <p className="text-gray-600 mt-1">8527695490</p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="flex items-start">
+                    <Mail className="w-5 h-5 text-amber-600 mr-4 mt-1 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-medium text-gray-800">General Inquiries</h4>
+                      <p className="text-gray-600 mt-1">info@youthgitasummit.org</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <Building className="w-5 h-5 text-amber-600 mr-4 mt-1 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-medium text-gray-800">Organizing Body</h4>
+                      <p className="text-gray-600 mt-1">Manav Rachna Educational Institutions, Faridabad (Haryana)</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            {/* The MapEmbed will render here */}
               <MapEmbed />
-            </div>
           </motion.div>
         </div>
-      </div>
     </section>
   );
 };
