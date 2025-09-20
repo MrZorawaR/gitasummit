@@ -52,16 +52,16 @@ const Footer = () => {
               <li className="flex items-start space-x-3">
                 <Building size={20} className="text-amber-500 shrink-0 mt-1" />
                 <span>
-                  Manav Rachna Educational Institutions, Faridabad (Haryana)
+                  Gita Gyan Sansthanam, KDB Road, Kurukshetra.
                 </span>
               </li>
               <li className="flex items-center space-x-3">
                 <Phone size={20} className="text-amber-500" />
-                <span>8527695490 (Dr. Gurjeet Kaur Chawla)</span>
+                <span>99965 51615</span>
               </li>
               <li className="flex items-center space-x-3">
                 <Mail size={20} className="text-amber-500" />
-                <span>info@youthgitasummit.org</span>
+                <span>gieogita@gmail.com</span>
               </li>
             </ul>
           </div>

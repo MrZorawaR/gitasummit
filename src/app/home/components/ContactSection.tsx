@@ -88,22 +88,21 @@ const ContactSection = () => {
                     <Phone className="w-5 h-5 text-amber-600 mr-4 mt-1 flex-shrink-0" />
                     <div>
                       <h4 className="font-medium text-gray-800">Event Coordinator</h4>
-                      <p className="text-gray-600">Dr. Gurjeet Kaur Chawla</p>
-                      <p className="text-gray-600 mt-1">8527695490</p>
+                      <p className="text-gray-600 mt-1">99965 51615</p>
                     </div>
                   </div>
                   <div className="flex items-start">
                     <Mail className="w-5 h-5 text-amber-600 mr-4 mt-1 flex-shrink-0" />
                     <div>
                       <h4 className="font-medium text-gray-800">General Inquiries</h4>
-                      <p className="text-gray-600 mt-1">info@youthgitasummit.org</p>
+                      <p className="text-gray-600 mt-1">gieogita@gmail.com</p>
                     </div>
                   </div>
                   <div className="flex items-start">
                     <Building className="w-5 h-5 text-amber-600 mr-4 mt-1 flex-shrink-0" />
                     <div>
                       <h4 className="font-medium text-gray-800">Organizing Body</h4>
-                      <p className="text-gray-600 mt-1">Manav Rachna Educational Institutions, Faridabad (Haryana)</p>
+                      <p className="text-gray-600 mt-1">Gita Gyan Sansthanam, KDB Road, Kurukshetra.</p>
                     </div>
                   </div>
                 </div>
