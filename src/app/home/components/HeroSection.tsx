@@ -58,7 +58,7 @@ export default function HeroSection() {
         </motion.h1>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }}>
-          <span className="bg-white/10 text-white backdrop-blur-sm py-1 px-4 rounded-full text-md font-medium mt-5">
+          <span className="bg-white/10 text-white backdrop-blur-sm py-1 px-4 rounded-full text-xl font-medium mt-5">
             06<sup>th</sup> Nov, 2025
           </span>
         </motion.div>

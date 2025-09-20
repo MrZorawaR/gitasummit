@@ -5,46 +5,40 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import {
-    Card, CardContent, CardDescription, CardHeader, CardTitle
+    Card, CardContent, CardHeader, CardTitle
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Download, FileText, LogOut, Menu, Send, Ticket } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Download, LogOut, User, UserCheck, BookOpenCheck, Mail, Phone, MapPin, BookHeart, BarChart } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { toast } from "sonner";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import Link from "next/link";
+import { Input } from "@/components/ui/input";
 
-interface UserDetails {
+interface ParticipantDetails {
+    _id: string;
     registrationId: string;
     name: string;
     email: string;
     whatsapp: string;
+    mobile: string;
     address: string;
+    city: string;
+    state: string;
     registrationType: string;
-    additionalMembers: number;
-    paymentStatus: string;
-    qrCode: string;
-    qrSent: boolean;
-    totalAmount: number;
+    checkedIn: boolean;
+    followsGita?: 'yes' | 'no';
+    gitaSelfRating?: 'low' | 'medium' | 'high';
     createdAt: string;
-    appliedCoupon?: string;
-    couponDetails?: {
-        name: string;
-        assignedTo: string;
-        discount: number;
-    } | null;
 }
 
-
 const AdminDashboard = () => {
-    const [isLoading, setIsLoading] = useState(false);
-    const [userDetails, setUserDetails] = useState<UserDetails[]>([]);
-    const [selectedUser, setSelectedUser] = useState<UserDetails | null>(null);
-    const [sendingQr, setSendingQr] = useState<{ [key: string]: boolean }>({});
+    const [isLoading, setIsLoading] = useState(true);
+    const [participants, setParticipants] = useState<ParticipantDetails[]>([]);
     const [stats, setStats] = useState({
         totalRegistrations: 0,
+        notFollowsGita: 0,
+        followsGitaCount: 0,
     });
+        const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
         fetchData();
@@ -54,254 +48,135 @@ const AdminDashboard = () => {
         setIsLoading(true);
         try {
             const response = await fetch("/api/admin/registerations");
-            const data = await response.json();
-
-            setUserDetails(data);
-
-            const totalRegistrations = data.length;
-            const totalGuests = data.filter((user: UserDetails) => user.registrationType.toLowerCase() === "guest").length;
-
-            setStats({ totalRegistrations });
-        } catch {
-            toast.error("Failed! Please try again.");
+            if (!response.ok) throw new Error("Failed to fetch data");
+            const data: ParticipantDetails[] = await response.json();
+            setParticipants(data);
+            setStats({
+                totalRegistrations: data.length,
+                notFollowsGita: data.filter(p => p.followsGita === "no").length,
+                followsGitaCount: data.filter(p => p.followsGita === 'yes').length,
+            });
+        } catch (error) {
+            toast.error("Failed to load participant data.");
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     const formatDate = (dateString: string) => {
         if (!dateString) return "N/A";
         const date = new Date(dateString);
         return new Intl.DateTimeFormat('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            dateStyle: 'long', timeStyle: 'short'
         }).format(date);
     };
 
-    const exportUserDetailsToExcel = () => {
-        let csvContent = "Registration ID,Name,Email,Phone,Registration Type,Additional Members,Date\n";
+    const exportToCsv = () => {
+        const headers = "ID,Name,Email,WhatsApp,Mobile,Address,City,State,FollowsGita,GitaRating,RegisteredOn\n";
+        const csvContent = participants.map(p => [
+            p.registrationId, p.name, p.email, p.whatsapp, p.mobile,
+            `"${p.address.replace(/"/g, '""')}"`, p.city, p.state,
+            p.followsGita || 'N/A', p.gitaSelfRating || 'N/A', formatDate(p.createdAt)
+        ].join(',')).join('\n');
 
-        userDetails.forEach(user => {
-            const row = [
-                user.registrationId,
-                user.name,
-                user.email,
-                user.whatsapp || '',
-                user.registrationType,
-                user.additionalMembers,
-                user.paymentStatus,
-                formatDate(user.createdAt)
-            ].join(",");
-
-            csvContent += row + "\n";
-        });
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
+        const blob = new Blob([headers + csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", "user_details.csv");
-        document.body.appendChild(link);
+        link.href = URL.createObjectURL(blob);
+        link.download = "summit_participants.csv";
         link.click();
-        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
     };
 
-    const sendQRCode = async (user: UserDetails) => {
-        setSendingQr((prev) => ({ ...prev, [user.registrationId]: true }));
-        try {
-            const response = await fetch("/api/sendQr", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: user.email, qrCodeImage: user.qrCode }),
-            });
-
-            const data = await response.json();
-            if (response.ok) {
-                toast.success("QR code sent successfully!");
-
-                await fetch("/api/updateQrStatus", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ registrationId: user.registrationId }),
-                });
-
-                setUserDetails((prev) =>
-                    prev.map((u) =>
-                        u.registrationId === user.registrationId ? { ...u, qrSent: true } : u
-                    )
-                );
-            } else {
-                toast.error(data.message || "Failed to send QR code");
-            }
-        } catch (error) {
-            console.error("QR Code Sending Error:", error);
-            toast.error("Error sending QR code");
-        } finally {
-            setSendingQr((prev) => ({ ...prev, [user.registrationId]: false }));
-        }
-    };
-
+        const filteredParticipants = participants.filter(p =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
     return (
-        <div className="py-20 px-6 md:px-12 max-w-7xl mx-auto mt-6">
-            <div className="mb-12 flex items-center justify-between">
+        <div className="flex-1 space-y-6 p-4 md:p-8 pt-6 bg-slate-50 min-h-screen">
+            {/* Header */}
+            <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-heading font-bold">Admin Dashboard</h1>
-                    <p className="mt-2 text-gray-600">Manage registration details</p>
+                    <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
+                    <p className="text-muted-foreground">Manage Summit Participants</p>
                 </div>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                            <Menu size={24} />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <Link href="/admin/dashboard">
-                            <DropdownMenuItem>
-                                <Menu size={16} className="mr-2" />
-                                Dashboard
-                            </DropdownMenuItem>
-                        </Link>
-                        <Link href="/admin/coupons">
-                            <DropdownMenuItem>
-                                <Ticket size={16} className="mr-2" />
-                                Manage Coupons
-                            </DropdownMenuItem>
-                        </Link>
-                        <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/login" })} className="text-red-500">
-                            <LogOut size={16} className="mr-2" />
-                            Logout
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex items-center space-x-2">
+                    <Button onClick={exportToCsv} className="bg-amber-600 hover:bg-amber-700">
+                        <Download className="mr-2 h-4 w-4" /> Export
+                    </Button>
+                    <Button
+                        variant={"outline"}
+                        onClick={() => signOut({ callbackUrl: "/login" })}
+                        className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
+                    >
+                        <LogOut size={16} className="mr-2" /> Logout
+                    </Button>
+                </div>
             </div>
 
-            {/* Stats Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Total Registrations</CardTitle>
-                        <CardDescription>All user registrations</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-3xl font-bold">{stats.totalRegistrations}</p>
-                    </CardContent>
-                </Card>
+            {/* Stats */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Registrations</CardTitle><div className="h-8 w-8 flex items-center justify-center rounded-lg bg-amber-100"><User className="h-4 w-4 text-amber-600" /></div></CardHeader><CardContent><div className="text-2xl font-bold">{stats.totalRegistrations}</div></CardContent></Card>
+                <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Non Gita Followers</CardTitle><div className="h-8 w-8 flex items-center justify-center rounded-lg bg-green-100"><UserCheck className="h-4 w-4 text-green-600" /></div></CardHeader><CardContent><div className="text-2xl font-bold">{stats.notFollowsGita}</div></CardContent></Card>
+                <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Gita Followers</CardTitle><div className="h-8 w-8 flex items-center justify-center rounded-lg bg-amber-100"><BookOpenCheck className="h-4 w-4 text-amber-600" /></div></CardHeader><CardContent><div className="text-2xl font-bold">{stats.followsGitaCount}</div></CardContent></Card>
             </div>
 
-            {/* User Table */}
-            <div className="bg-white rounded-xl p-8 shadow-subtle">
-                <div className="flex justify-between items-center mb-6">
-                    <div className="flex justify-end w-full">
-                        <Button onClick={exportUserDetailsToExcel} className="flex gap-2 items-center cursor-pointer">
-                            <Download size={16} />
-                            Export to CSV
-                        </Button>
+            {/* Full Participant Table */}
+            <Card className="shadow-sm">
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle>Participant List</CardTitle>
+                        <Input
+                            placeholder="Search by name or email..."
+                            className="max-w-sm"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
-                </div>
-
-                {isLoading ? (
-                    <div className="text-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sangrila-600 mx-auto mb-4"></div>
-                        <p>Loading user registrations...</p>
-                    </div>
-                ) : userDetails.length > 0 ? (
-                    <div className="rounded-md border overflow-auto">
+                </CardHeader>
+                <CardContent>
+                    <div className="rounded-md border">
                         <Table>
                             <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead>Phone</TableHead>
-                                    <TableHead>Details</TableHead>
-                                    <TableHead>Payment Verified</TableHead>
-                                    <TableHead>Send QR Ticket</TableHead>
+                                <TableRow className="bg-slate-100">
+                                    <TableHead className="w-[25%]">Participant</TableHead>
+                                    <TableHead>Contact & Location</TableHead>
+                                    <TableHead>Summit Status</TableHead>
+                                    <TableHead>Registered On</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {userDetails.map((user) => (
-                                    <TableRow key={user.registrationId || user.email || Math.random()}>
-                                        <TableCell>{user.name}</TableCell>
-                                        <TableCell>{user.email}</TableCell>
-                                        <TableCell>{user.whatsapp || "-"}</TableCell>
-                                        <TableCell>
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="flex items-center gap-1"
-                                                        onClick={() => setSelectedUser(user)}
-                                                    >
-                                                        <FileText size={14} />
-                                                        View
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogHeader>
-                                                        <DialogTitle>User Details</DialogTitle>
-                                                    </DialogHeader>
-                                                    {selectedUser && (
-                                                        <div className="space-y-4">
-                                                            <p><strong>ID:</strong> {selectedUser.registrationId}</p>
-                                                            <p><strong>Name:</strong> {selectedUser.name}</p>
-                                                            <p><strong>Email:</strong> {selectedUser.email}</p>
-                                                            <p><strong>Phone:</strong> {selectedUser.whatsapp || "-"}</p>
-                                                            <p><strong>Registration Type:</strong> {selectedUser.registrationType}</p>
-                                                            <p><strong>Additional Members:</strong> {selectedUser.additionalMembers}</p>
-                                                            <p><strong>Payment Status:</strong> {selectedUser.paymentStatus}</p>
-                                                            <p><strong>Total Payment:</strong> {selectedUser.totalAmount}</p>
-
-                                                            {selectedUser.couponDetails ? (
-                                                                <div className="border-t pt-4 mt-4 space-y-4">
-                                                                    <h3 className="text-lg font-semibold">Coupon Details</h3>
-                                                                    <p><strong>Coupon Code:</strong> {selectedUser.couponDetails.name}</p>
-                                                                    <p><strong>Assigned To:</strong> {selectedUser.couponDetails.assignedTo}</p>
-                                                                    <p><strong>Discount:</strong> {selectedUser.couponDetails.discount}%</p>
-                                                                </div>
-                                                            ) : (
-                                                                <p className="text-gray-500">No coupon applied.</p>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </DialogContent>
-                                            </Dialog>
-
-                                        </TableCell>
-                                        <TableCell>
-                                            {user.paymentStatus === "verified" ? (
-                                                <Badge variant="default" className="text-green-600 bg-green-100">
-                                                    Verified
-                                                </Badge>
-                                            ) : user.paymentStatus === "failed" ? (
-                                                <Badge variant="destructive" className="text-red-600 bg-red-100">
-                                                    Failed
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="text-yellow-600 bg-yellow-100">
-                                                    Pending
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-
-                                        <TableCell>
-                                            <Button size="sm" className="flex items-center gap-1 cursor-pointer" onClick={() => sendQRCode(user)} disabled={sendingQr[user.registrationId] || user.qrSent}>
-                                                <Send size={14} />
-                                                {user.qrSent ? "Sent" : sendingQr[user.registrationId] ? "Sending..." : "Send QR"}
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                {isLoading ? (
+                                    <TableRow><TableCell colSpan={4} className="h-24 text-center">Loading participants...</TableCell></TableRow>
+                                ) : filteredParticipants.length > 0 ? (
+                                    filteredParticipants.map((p) => (
+                                        <TableRow key={p._id}>
+                                            <TableCell>
+                                                <div className="font-medium text-gray-800">{p.name}</div>
+                                                <div className="text-xs text-muted-foreground">{p.registrationId}</div>
+                                            </TableCell>
+                                            <TableCell className="text-sm text-muted-foreground space-y-1">
+                                                <div className="flex items-center"><Mail className="w-3.5 h-3.5 mr-2" />{p.email}</div>
+                                                <div className="flex items-center"><Phone className="w-3.5 h-3.5 mr-2" />{p.whatsapp}</div>
+                                                <div className="flex items-center"><MapPin className="w-3.5 h-3.5 mr-2" />{`${p.city}, ${p.state}`}</div>
+                                            </TableCell>
+                                            <TableCell className="space-y-2">
+                                                <div className="flex items-center text-xs text-muted-foreground"><BookHeart className="w-3.5 h-3.5 mr-1.5" /> Follows Gita: <span className="font-semibold text-gray-700 ml-1">{p.followsGita === 'yes' ? 'Yes' : 'No'}</span></div>
+                                                {p.followsGita === 'yes' && <div className="flex items-center text-xs text-muted-foreground"><BarChart className="w-3.5 h-3.5 mr-1.5" /> Rating: <span className="font-semibold text-gray-700 ml-1 capitalize">{p.gitaSelfRating}</span></div>}
+                                            </TableCell>
+                                            <TableCell className="text-sm text-muted-foreground">{formatDate(p.createdAt)}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow><TableCell colSpan={4} className="h-24 text-center">No participants found.</TableCell></TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </div>
-                ) : (
-                    <div className="text-center py-12">No user registrations found.</div>
-                )}
-            </div>
+                </CardContent>
+            </Card>
         </div>
     );
 };
+
 
 export default AdminDashboard;

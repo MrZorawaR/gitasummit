@@ -1,33 +1,65 @@
 import mongoose from "mongoose";
 
+const phone10 = /^[0-9]{10}$/;
+
 const GuestSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    email: { type: String, required: true },
-    address: { type: String, required: true },
-    whatsapp: { type: String, required: true },
-    additionalMembers: { type: Number, default: 0 },
-    registrationId: { type: String, unique: true, required: true },
-    registrationType: { 
-      type: String, 
-      enum: ["guest"], 
-      required: true 
+    name: { type: String, required: true, trim: true },
+    email: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Invalid email format"],
     },
-    qrCode: { type: String }, 
-    checkedIn: { type: Boolean, default: false },
-    qrSent: { type: Boolean, default: false },
+    address: { type: String, required: true, trim: true },
 
-    totalAmount: { type: Number, required: true },
-    totalAfterDiscount: { type: Number, required: true },
-    appliedCoupon: { type: String, default: "" },
-    utrNumber: { type: String, unique: true, sparse: true, required: true },
-    paymentStatus: { 
-      type: String, 
-      enum: ["pending", "verified", "failed"], 
-      default: "pending" 
+    whatsapp: {
+      type: String,
+      required: true,
+      trim: true,
+      match: [phone10, "WhatsApp must be a 10-digit number"],
+    },
+    mobile: {
+      type: String,
+      required: true,
+      trim: true,
+      match: [phone10, "Mobile must be a 10-digit number"],
+    },
+
+    city: { type: String, required: true, trim: true },
+    state: { type: String, required: true, trim: true },
+
+    registrationId: { type: String, unique: true, required: true, trim: true },
+    registrationType: {
+      type: String,
+      enum: ["guest"],
+      required: true,
+      default: "guest",
+    },
+
+    checkedIn: { type: Boolean, default: false },
+
+    followsGita: {
+      type: String,
+      enum: ["yes", "no"],
+      default: undefined,
+    },
+    gitaSelfRating: {
+      type: String,
+      enum: ["low", "medium", "high"],
+      default: undefined,
     },
   },
   { collection: "guestDetails", timestamps: true }
 );
 
-export default mongoose.models.GuestDetails || mongoose.model("GuestDetails", GuestSchema);
+GuestSchema.pre("validate", function (next) {
+  if (this.followsGita !== "yes") {
+    this.gitaSelfRating = undefined;
+  }
+  next();
+});
+
+export default mongoose.models.GuestDetails ||
+  mongoose.model("GuestDetails", GuestSchema);

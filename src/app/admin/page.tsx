@@ -1,6 +1,5 @@
 "use client";
 
-import AccessDenied from "@/components/layout/AccessDenied";
 import Loading from "@/components/layout/Loading";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -12,25 +11,17 @@ const AdminPage = () => {
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/admin/login");
+    if (status === "loading") {
+      return;
     }
-  }, [status, router]);
 
-  if (status === "loading") {
-    return (
-      <>
-        <Loading />
-      </>
-    );
-  }
+    if (!session || session.user.role !== "admin") {
+      router.push("/login");
+    }
+  }, [session, status, router]);
 
-  if (!session || session.user.role !== "admin") {
-    return (
-      <>
-        <AccessDenied />
-      </>
-    );
+  if (status !== "authenticated" || session.user.role !== "admin") {
+    return <Loading />;
   }
 
   return (
